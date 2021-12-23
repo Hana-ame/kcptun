@@ -13,6 +13,7 @@ import (
 	"hash/crc32"
 	"io"
 	"net"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -989,7 +990,17 @@ func Listen(laddr string) (net.Listener, error) { return ListenWithOptions(laddr
 //
 // Check https://github.com/klauspost/reedsolomon for details
 func ListenWithOptions(laddr string, block BlockCrypt, dataShards, parityShards int) (*Listener, error) {
-	udpaddr, err := net.ResolveUDPAddr("udp", laddr)
+	// OverRide Here?
+	// lraddr 将被指定为 url:port 格式（应该打死我）
+	// 暂时为 path
+	// 只取出 :port 的部分
+	s := strings.Split(laddr, ":") // 竟然能把变量引号引起来，我是傻逼
+	// 注意：不考虑其他兼容的破坏性修改
+	// OverRide End //
+	// udpaddr, err := net.ResolveUDPAddr("udp", ":"+s[len(s)-1])
+	udpaddr, err := net.ResolveUDPAddr("udp", ":4000") //测试
+
+	// udpaddr, err := net.ResolveUDPAddr("udp", laddr)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -997,6 +1008,28 @@ func ListenWithOptions(laddr string, block BlockCrypt, dataShards, parityShards 
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+
+	// OverRide Here?
+	// 得到本地IP:port，随后将本地IP发送
+	// 得到真实IP
+	taddr, err := GetAddrBrute(conn)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	Debug(taddr)
+	// 服务端新建
+	print(s[0])
+	NewNodeBrute(s[0], taddr)
+	// 时刻监测并且发送心跳
+	defer func() {
+		for {
+			go PingPeer(s[0], conn)
+			sleep(100) // 太久了
+			// Debug("ping..")
+		}
+	}()
+	// 注意：不考虑其他兼容的破坏性修改
+	// OverRide End //
 
 	return serveConn(block, dataShards, parityShards, conn, true)
 }
@@ -1033,8 +1066,22 @@ func Dial(raddr string) (net.Conn, error) { return DialWithOptions(raddr, nil, 0
 //
 // Check https://github.com/klauspost/reedsolomon for details
 func DialWithOptions(raddr string, block BlockCrypt, dataShards, parityShards int) (*UDPSession, error) {
+	// OverRide Here?
+	// raddr 将被指定为 url 格式
+	// TODO: 处理raddr，接受真实IP，根据返回IP决定EndPoint
+	// 暂定为path，写死addr
+	endpoint := ""
+	for endpoint == "" {
+		endpoint = GetNodeEndpointBrute(raddr)
+	}
+	// Debug(endpoint)
+	// 注意：不考虑其他兼容的破坏性修改
+	// OverRide End //
+
 	// network type detection
-	udpaddr, err := net.ResolveUDPAddr("udp", raddr)
+	// udpaddr, err := net.ResolveUDPAddr("udp", endpoint)
+	udpaddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:4000") // 测试
+	// udpaddr, err := net.ResolveUDPAddr("udp", raddr)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -1047,6 +1094,35 @@ func DialWithOptions(raddr string, block BlockCrypt, dataShards, parityShards in
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+
+	// OverRide Here? （处理两次有点傻）
+	// 必须在这里，因为需要用到udpSocket，有 WriteTo(b []byte, addr Addr) (int, error) 就行
+	// 只能分开了
+	// TODO: 得到本地IP:port，随后将本地IP发送
+	// 得到IP:port
+	taddr, err := GetAddrBrute(conn)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	Debug(taddr, "=>", endpoint)
+	// 客户端加入
+	go JoinNodeBrute(raddr, taddr)
+	go JoinNodeBrute(raddr, taddr)
+	go JoinNodeBrute(raddr, taddr)
+	go JoinNodeBrute(raddr, taddr)
+	go JoinNodeBrute(raddr, taddr)
+	// PingHost(raddr, conn)
+
+	// 时刻监测并且发送心跳 // 不需要
+	defer func() {
+		for {
+			go PingHost(raddr, conn)
+			sleep(500)
+		}
+	}()
+	sleep(1550)
+	// 注意：不考虑其他兼容的破坏性修改
+	// OverRide End //
 
 	var convid uint32
 	binary.Read(rand.Reader, binary.LittleEndian, &convid)
