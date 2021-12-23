@@ -3,6 +3,9 @@ $env:GO111MODULE="on"
 go build -o s -mod vendor ./server
 go build -o c -mod vendor ./client
 
+go build  -mod vendor ./server
+go build  -mod vendor ./client
+
 ./s -t "144.34.219.146:26275" -l "sbb:4000"
 ./c -r "sbb" -l ":8388"
 
@@ -12,6 +15,22 @@ go build -o c -mod vendor ./client
 ./server.exe -t "144.34.19.146" -l "sbb:4000"
 ./server.exe -t "localhost:80" -l "sbb:4000"
 
+
+@ override 链接，没啥毛病
+./server.exe -t "localhost:80" -l "sbb:4000"
+./client.exe  -r "sbb" -l ":8080"
+
+@!  server的 listen addr 单纯的overridde不可用，应该是问题原因
+
+@?  server监听4000是OK的，但是40000不行，什么玩意啊……
+
+
+# 转成udp转发器的思路吧，这个kcptun实在是太难懂了
+最多也就是把端口记录一下加到头里面吧，大概
+
+
+@@@ 
+人傻了，不看了
 
 raw链接可通
 
