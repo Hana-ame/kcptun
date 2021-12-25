@@ -22,7 +22,17 @@ func main() {
 
 	if mode == "raw" {
 		raw(laddr, raddr)
+	} else if mode == "server" {
+		server(laddr, raddr)
+	} else if mode == "client" {
+		client(laddr, raddr)
 	}
+}
+
+func server(laddr, raddr string) {
+
+}
+func client(laddr, raddr string) {
 
 }
 
