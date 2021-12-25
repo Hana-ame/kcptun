@@ -12,8 +12,10 @@ var pool map[int]*net.UDPConn
 
 // ./udptun.exe -l ":6000" -r "127.0.0.1:4000"
 func main() {
+	var mode string
 	var laddr string
 	var raddr string
+	flag.StringVar(&mode, "mode", "none", "client: send with work as client (mux) or\nwork as server (demux)\nnone: do nothing")
 	flag.StringVar(&laddr, "l", ":6000", "local addr")
 	flag.StringVar(&raddr, "r", "127.0.0.1:40000", "remote addr")
 	flag.Parse()
