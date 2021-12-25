@@ -15,11 +15,18 @@ func main() {
 	var mode string
 	var laddr string
 	var raddr string
-	flag.StringVar(&mode, "mode", "none", "client: send with work as client (mux) or\nwork as server (demux)\nnone: do nothing")
+	flag.StringVar(&mode, "mode", "raw", "client: send with work as client (mux) or\nwork as server (demux)\nnone: do nothing")
 	flag.StringVar(&laddr, "l", ":6000", "local addr")
 	flag.StringVar(&raddr, "r", "127.0.0.1:40000", "remote addr")
 	flag.Parse()
 
+	if mode == "raw" {
+		raw(laddr, raddr)
+	}
+
+}
+
+func raw(laddr, raddr string) {
 	pool = make(map[int]*net.UDPConn)
 
 	udpaddr, err := net.ResolveUDPAddr("udp", laddr)
@@ -72,7 +79,7 @@ func listen(lc *net.UDPConn, rep *net.UDPAddr) {
 		}
 
 		// 通过port索引并发送
-		n, err = pool[addr.(*net.UDPAddr).Port].WriteToUDP(buf[:n], rep)
+		_, err = pool[addr.(*net.UDPAddr).Port].WriteToUDP(buf[:n], rep)
 		if err != nil {
 			log.Println(errors.WithStack(err))
 		}
@@ -97,7 +104,7 @@ func newConnDeamon(lc, conn *net.UDPConn, la net.Addr) {
 		// fmt.Println(addr.(*net.UDPAddr).Port)
 
 		// 回传
-		n, err = lc.WriteTo(buf[:n], la)
+		_, err = lc.WriteTo(buf[:n], la)
 		if err != nil {
 			log.Println(errors.WithStack(err))
 		}
