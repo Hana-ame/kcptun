@@ -27,4 +27,6 @@ server/server
 build/*
 .DS_Store
 
+#
 *.zip
+*.exe~

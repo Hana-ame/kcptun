@@ -5,6 +5,7 @@ import (
 	"flag"
 	"log"
 	"net"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -25,12 +26,48 @@ func main() {
 	if mode == "raw" {
 		raw(laddr, raddr)
 	} else if mode == "server" {
-		// server2(laddr, raddr)
-		server(laddr, raddr)
+		server2(laddr, raddr)
+		// server(laddr, raddr)
 	} else if mode == "client" {
-		// client2(laddr, raddr)
-		client(laddr, raddr)
+		client2(laddr, raddr)
+		// client(laddr, raddr)
 	}
+}
+
+// 添加打洞
+// 改写raddr
+func server2(laddr, raddr string) { // 接受，去头，传送
+	pool = make(map[int]*net.UDPConn)
+
+	// udpaddr, err := net.ResolveUDPAddr("udp", laddr)
+	// if err != nil {
+	// 	log.Println(errors.WithStack(err))
+	// }
+	conn, err := net.ListenUDP("udp", nil)
+	if err != nil {
+		log.Println(errors.WithStack(err))
+	}
+
+	// stun
+	s, err := GetAddr(conn)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	log.Println(s)
+	NewNode(laddr, s)
+	go func(path string, conn *net.UDPConn) {
+		for {
+			n := GetNode(path)
+			n.PingPeer(conn)
+			time.Sleep(time.Second)
+		}
+	}(laddr, conn)
+
+	serveraddr, err := net.ResolveUDPAddr("udp", raddr)
+	if err != nil {
+		log.Println(errors.WithStack(err))
+	}
+	listenServer(conn, serveraddr)
 }
 
 func server(laddr, raddr string) { // 接受，去头，传送
@@ -114,6 +151,47 @@ func newConnServer(lc, conn *net.UDPConn, addr net.Addr, tag int) {
 	}
 }
 
+// 添加打洞
+func client2(laddr, raddr string) { // 接受，加头，传送
+	poolc = make(map[int]*net.Addr)
+
+	udpaddr, err := net.ResolveUDPAddr("udp", laddr)
+	if err != nil {
+		log.Println(errors.WithStack(err))
+	}
+	conn, err := net.ListenUDP("udp", udpaddr) // 本地映射
+	if err != nil {
+		log.Println(errors.WithStack(err))
+	}
+	pc, err := net.ListenUDP("udp", nil) // 集束
+	if err != nil {
+		log.Println(errors.WithStack(err))
+	}
+
+	// stun
+	s, err := GetAddr(pc)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	log.Println(s)
+	JoinNode(raddr, s)
+	go func(path string, conn *net.UDPConn) {
+		for {
+			n := GetNode(path)
+			n.PingHost(conn)
+			time.Sleep(time.Second)
+		}
+	}(raddr, pc)
+	n := GetNode(raddr)
+
+	remoteaddr, err := net.ResolveUDPAddr("udp", n.Endpoint)
+	if err != nil {
+		log.Println(errors.WithStack(err))
+	}
+	go listenClient(conn, pc, remoteaddr)
+	listenClientR(conn, pc)
+}
+
 func client(laddr, raddr string) { // 接受，加头，传送
 	poolc = make(map[int]*net.Addr)
 
@@ -146,7 +224,7 @@ func listenClient(lc, pc *net.UDPConn, rep *net.UDPAddr) {
 		if err != nil {
 			log.Println(errors.WithStack(err))
 		}
-		log.Println("addr:", addr)
+		// log.Println("addr:", addr)
 
 		// 如果没有则新建，按照tag来
 		tag := int(binary.BigEndian.Uint32(
@@ -180,7 +258,9 @@ func listenClientR(lc, pc *net.UDPConn) {
 		if err != nil {
 			log.Println(errors.WithStack(err))
 		}
-
+		if n < 4 {
+			continue
+		}
 		tag := int(binary.BigEndian.Uint32(buf[:4]))
 		if poolc[tag] == nil {
 			log.Println("不存在tag")
