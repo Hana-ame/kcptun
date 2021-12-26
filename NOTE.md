@@ -49,3 +49,17 @@ stun可通，未确认空包是否接受
 
 ./udptun.exe -mode "client" -l ":6000" -r "127.0.0.1:10000"
 ./udptun.exe -mode "server" -l ":10000" -r "127.0.0.1:4000"
+
+
+
+go build -o s -mod vendor ./server &
+go build -o c -mod vendor ./client &
+go build -o u -mod vendor ./udptun &
+
+./s -t "localhost:8080" -l ":4000"
+./u -mode "server" -l "gcp" -r "127.0.0.1:4000"
+
+./udptun.exe -mode "client" -l ":6000" -r "gcp"
+./client.exe  -r "localhost:6000" -l ":8080"
+
+it works well
