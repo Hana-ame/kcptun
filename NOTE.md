@@ -41,3 +41,11 @@ stun可通，未确认空包是否接受
 从raw一步一步改过来
 
 ~~现在在除了~~
+
+----
+
+./client.exe  -r "localhost:6000" -l ":8080"
+./server.exe -t "hana-sweet.top:443" -l ":4000"
+
+./udptun.exe -mode "client" -l ":6000" -r "127.0.0.1:10000"
+./udptun.exe -mode "server" -l ":10000" -r "127.0.0.1:4000"
