@@ -58,6 +58,9 @@ func server2(laddr, raddr string) { // 接受，去头，传送
 	go func(path string, conn *net.UDPConn) {
 		for {
 			n := GetNode(path)
+			if n == nil {
+				continue
+			}
 			n.PingPeer(conn)
 			time.Sleep(time.Second)
 		}
@@ -178,11 +181,17 @@ func client2(laddr, raddr string) { // 接受，加头，传送
 	go func(path string, conn *net.UDPConn) {
 		for {
 			n := GetNode(path)
+			if n == nil {
+				continue
+			}
 			n.PingHost(conn)
 			time.Sleep(time.Second)
 		}
 	}(raddr, pc)
 	n := GetNode(raddr)
+	for n == nil {
+		n = GetNode(raddr)
+	}
 
 	remoteaddr, err := net.ResolveUDPAddr("udp", n.Endpoint)
 	if err != nil {

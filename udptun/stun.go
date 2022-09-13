@@ -68,6 +68,7 @@ func GetNode(path string) *Node {
 	resp, err := http.Get(SERVER_ADDR + path)
 	if err != nil {
 		log.Printf("error : %v", err)
+		return nil
 	}
 	json.NewDecoder(resp.Body).Decode(node)
 	// fmt.Println(node)
